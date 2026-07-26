@@ -43,7 +43,7 @@ jobs:
       PODCAST_CONFIG: ${{ secrets.PODCAST_CONFIG }}
       NOTIONHUB_API_BASE: https://i.notionhub.app/v1
       NOTIONHUB_SERVICE: podcast
-      NOTIONHUB_CONFIG_VERSION: '31'
+      NOTIONHUB_CONFIG_VERSION: '32'
       SYNC_POLICY_STATE_PATH: ${{ github.workspace }}/notionhub-state.json
       SYNC_POLICY_CONTINUATION_PATH: ${{ github.workspace }}/notionhub-continuation-id
       SYNC_POLICY_REPORT_PATH: ${{ github.workspace }}/notionhub-service-report.json
@@ -246,7 +246,7 @@ jobs:
         id: job_config
         if: steps.progress.outcome == 'success'
         run: |
-          SERVICE_CONFIG='${{ secrets.PODCAST_CONFIG }}'
+          SERVICE_CONFIG="$PODCAST_CONFIG"
           PLAN=$(printf '%s' "$SERVICE_CONFIG" | jq -r '.PODCAST_SYNC_PLAN // "lifetime"')
           JOB_ENABLED=true
           SKIP_REASON=""
@@ -360,7 +360,7 @@ jobs:
       PODCAST_CONFIG: ${{ secrets.PODCAST_CONFIG }}
       NOTIONHUB_API_BASE: https://i.notionhub.app/v1
       NOTIONHUB_SERVICE: podcast
-      NOTIONHUB_CONFIG_VERSION: '31'
+      NOTIONHUB_CONFIG_VERSION: '32'
       SYNC_POLICY_STATE_PATH: ${{ github.workspace }}/notionhub-state.json
       SYNC_POLICY_CONTINUATION_PATH: ${{ github.workspace }}/notionhub-continuation-id
       SYNC_POLICY_REPORT_PATH: ${{ github.workspace }}/notionhub-service-report.json
@@ -378,7 +378,7 @@ jobs:
         id: job_config
         if: needs.data.outputs.enabled == 'true' && needs.data.result == 'success' && steps.restore.outcome == 'success'
         run: |
-          SERVICE_CONFIG='${{ secrets.PODCAST_CONFIG }}'
+          SERVICE_CONFIG="$PODCAST_CONFIG"
           PLAN=$(printf '%s' "$SERVICE_CONFIG" | jq -r '.PODCAST_SYNC_PLAN // "lifetime"')
           JOB_ENABLED=true
           SKIP_REASON=""
