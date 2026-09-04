@@ -49,7 +49,7 @@ jobs:
       WEREAD_CONFIG: ${{ secrets.WEREAD_CONFIG }}
       NOTIONHUB_API_BASE: https://i.notionhub.app/v1
       NOTIONHUB_SERVICE: weread
-      NOTIONHUB_CONFIG_VERSION: '49'
+      NOTIONHUB_CONFIG_VERSION: '51'
       SYNC_POLICY_STATE_PATH: ${{ github.workspace }}/notionhub-state.json
       SYNC_POLICY_CONTINUATION_PATH: ${{ github.workspace }}/notionhub-continuation-id
       SYNC_POLICY_REPORT_PATH: ${{ github.workspace }}/notionhub-service-report.json
@@ -374,7 +374,7 @@ jobs:
       WEREAD_CONFIG: ${{ secrets.WEREAD_CONFIG }}
       NOTIONHUB_API_BASE: https://i.notionhub.app/v1
       NOTIONHUB_SERVICE: weread
-      NOTIONHUB_CONFIG_VERSION: '49'
+      NOTIONHUB_CONFIG_VERSION: '51'
       SYNC_POLICY_STATE_PATH: ${{ github.workspace }}/notionhub-state.json
       SYNC_POLICY_CONTINUATION_PATH: ${{ github.workspace }}/notionhub-continuation-id
       SYNC_POLICY_REPORT_PATH: ${{ github.workspace }}/notionhub-service-report.json
@@ -725,7 +725,7 @@ jobs:
       WEREAD_CONFIG: ${{ secrets.WEREAD_CONFIG }}
       NOTIONHUB_API_BASE: https://i.notionhub.app/v1
       NOTIONHUB_SERVICE: weread
-      NOTIONHUB_CONFIG_VERSION: '49'
+      NOTIONHUB_CONFIG_VERSION: '51'
       SYNC_POLICY_STATE_PATH: ${{ github.workspace }}/notionhub-state.json
       SYNC_POLICY_CONTINUATION_PATH: ${{ github.workspace }}/notionhub-continuation-id
       SYNC_POLICY_REPORT_PATH: ${{ github.workspace }}/notionhub-service-report.json
@@ -1084,7 +1084,7 @@ jobs:
       WEREAD_CONFIG: ${{ secrets.WEREAD_CONFIG }}
       NOTIONHUB_API_BASE: https://i.notionhub.app/v1
       NOTIONHUB_SERVICE: weread
-      NOTIONHUB_CONFIG_VERSION: '49'
+      NOTIONHUB_CONFIG_VERSION: '51'
       SYNC_POLICY_STATE_PATH: ${{ github.workspace }}/notionhub-state.json
       SYNC_POLICY_CONTINUATION_PATH: ${{ github.workspace }}/notionhub-continuation-id
       SYNC_POLICY_REPORT_PATH: ${{ github.workspace }}/notionhub-service-report.json
@@ -1443,7 +1443,7 @@ jobs:
       WEREAD_CONFIG: ${{ secrets.WEREAD_CONFIG }}
       NOTIONHUB_API_BASE: https://i.notionhub.app/v1
       NOTIONHUB_SERVICE: weread
-      NOTIONHUB_CONFIG_VERSION: '49'
+      NOTIONHUB_CONFIG_VERSION: '51'
       SYNC_POLICY_STATE_PATH: ${{ github.workspace }}/notionhub-state.json
       SYNC_POLICY_CONTINUATION_PATH: ${{ github.workspace }}/notionhub-continuation-id
       SYNC_POLICY_REPORT_PATH: ${{ github.workspace }}/notionhub-service-report.json
@@ -1880,8 +1880,13 @@ jobs:
             fi
           done
 
-          echo "::error title=同步进度恢复失败::GitHub 阶段结果在 6 次尝试后仍不可用。"
-          exit 1
+          rm -rf "${{ github.workspace }}/notionhub-artifacts"
+              mkdir -p "${{ github.workspace }}/notionhub-artifacts"
+              cp -R "$ATTEMPT_DIR"/. "${{ github.workspace }}/notionhub-artifacts"/
+          cleanup_artifact_attempt
+          ATTEMPT_DIR=""
+          echo "::warning title=同步阶段未全部运行::将使用已完成阶段生成最终失败报告。"
+          exit 0
 
       - name: 汇总同步结果
         id: aggregate
@@ -2122,6 +2127,12 @@ jobs:
           } >> "$GITHUB_ENV"
           echo "plan=$PLAN" >> "$GITHUB_OUTPUT"
 
+      - name: 确认首次全量同步完成
+        if: always() && steps.finish_auth.outputs.complete_initial == 'true' && steps.finish_authorize.outcome == 'success'
+        run: |
+          PAYLOAD=$(jq -cn --arg service "weread" --arg repository "${{ github.repository }}" --arg run_id "${{ github.run_id }}" --arg requested "${{ steps.aggregate.outputs.requested_mode }}" --arg effective "${{ steps.aggregate.outputs.effective_mode }}" '{service:$service,repository:$repository,githubRunId:$run_id,status:"success",requestedMode:$requested,effectiveMode:$effective,initialFullSyncForced:true}')
+          curl -fsSL -X POST "$NOTIONHUB_API_BASE/internal/initial-full-sync/complete"             -H "Authorization: Bearer $NOTIONHUB_RUN_ACCESS_TOKEN" -H 'Content-Type: application/json' --data "$PAYLOAD" >/dev/null
+
       - name: 提交运行结果
         if: always() && steps.finish_auth.outputs.report_run == 'true' && steps.finish_authorize.outcome == 'success'
         run: |
@@ -2129,12 +2140,6 @@ jobs:
           cd runner
           python -m notionhub_runner report weread --status "$STATUS" --state "${{ github.workspace }}/notionhub-state.json" --output "$RUNNER_TEMP/notionhub-settlement.json" --failure-class "${{ steps.aggregate.outputs.failure_class || 'platform' }}"
           curl --retry 3 --retry-all-errors -fsSL -X POST "$NOTIONHUB_API_BASE/internal/trial-runs/$NOTIONHUB_POLICY_ID/report"             -H "Authorization: Bearer $NOTIONHUB_REPORT_TOKEN" -H 'Content-Type: application/json' --data-binary "@$RUNNER_TEMP/notionhub-settlement.json" >/dev/null
-
-      - name: 确认首次全量同步完成
-        if: always() && steps.finish_auth.outputs.complete_initial == 'true' && steps.finish_authorize.outcome == 'success'
-        run: |
-          PAYLOAD=$(jq -cn --arg service "weread" --arg repository "${{ github.repository }}" --arg run_id "${{ github.run_id }}" --arg requested "${{ steps.aggregate.outputs.requested_mode }}" --arg effective "${{ steps.aggregate.outputs.effective_mode }}" '{service:$service,repository:$repository,githubRunId:$run_id,status:"success",requestedMode:$requested,effectiveMode:$effective,initialFullSyncForced:true}')
-          curl -fsSL -X POST "$NOTIONHUB_API_BASE/internal/initial-full-sync/complete"             -H "Authorization: Bearer $NOTIONHUB_RUN_ACCESS_TOKEN" -H 'Content-Type: application/json' --data "$PAYLOAD" >/dev/null
 
       - name: 生成运行摘要
         if: always()
