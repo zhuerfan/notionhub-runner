@@ -1,4 +1,4 @@
-# NotionHub generated free workflow v4
+# NotionHub generated free workflow v5
 name: 豆瓣免费版
 run-name: ${{ github.workflow }}
 
@@ -32,8 +32,8 @@ jobs:
     env:
       FREE_CONFIG_JSON: ${{ secrets.DOUBAN_FREE_CONFIG }}
       SOURCE_REPOSITORY: malinkang/douban2notion
-      SOURCE_REF: notionhub-free-v1.0.0
-      SOURCE_SHA: 980d07fa9b83fae56a4e857dad54af619fb7e50f
+      SOURCE_REF: 654ee32ad9fe34553d8b9244081e76db2826e3c6
+      SOURCE_SHA: 654ee32ad9fe34553d8b9244081e76db2826e3c6
       REPOSITORY: ${{ github.repository }}
       ARTIFACT_BRANCH: ${{ github.event.repository.default_branch }}
       NOTIONHUB_ARTIFACT_ROOT: ${{ github.workspace }}/.notionhub-artifacts/douban
@@ -129,7 +129,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: malinkang/douban2notion
-          ref: notionhub-free-v1.0.0
+          ref: 654ee32ad9fe34553d8b9244081e76db2826e3c6
           path: .notionhub-source/douban
           persist-credentials: false
 
@@ -138,7 +138,7 @@ jobs:
         run: |
           ACTUAL_SHA=$(git rev-parse HEAD)
           if [ "$ACTUAL_SHA" != "$SOURCE_SHA" ]; then
-            echo "::error title=开源版本校验失败::malinkang/douban2notion@notionhub-free-v1.0.0 的提交与预期 SHA 不一致。"
+            echo "::error title=开源版本校验失败::malinkang/douban2notion@654ee32ad9fe34553d8b9244081e76db2826e3c6 的提交与预期 SHA 不一致。"
             exit 1
           fi
 
@@ -169,7 +169,6 @@ jobs:
         working-directory: .notionhub-source/douban
         run: |
           export NOTION_TOKEN="$(jq -r '.notion.targets.movie.token' "$FREE_CONFIG_FILE")"
-          export DATABASE_ID="$(jq -r '.notion.targets.movie.pages.root' "$FREE_CONFIG_FILE")"
           NAME="$(jq -r '.account.name' "$FREE_CONFIG_FILE")"
           github_heatmap notion --notion_token "$NOTION_TOKEN" --database_id "$DATABASE_ID" --date_prop_name "日期" --value_prop_name "看过" --unit "部" --year "$(date +%Y)" --me "$NAME" --without-type-name
           heatmap movie
@@ -189,7 +188,6 @@ jobs:
         working-directory: .notionhub-source/douban
         run: |
           export NOTION_TOKEN="$(jq -r '.notion.targets.book.token' "$FREE_CONFIG_FILE")"
-          export DATABASE_ID="$(jq -r '.notion.targets.book.pages.root' "$FREE_CONFIG_FILE")"
           NAME="$(jq -r '.account.name' "$FREE_CONFIG_FILE")"
           github_heatmap notion --notion_token "$NOTION_TOKEN" --database_id "$DATABASE_ID" --date_prop_name "日期" --value_prop_name "读过" --unit "本" --year "$(date +%Y)" --me "$NAME" --without-type-name
           heatmap book
